@@ -40,6 +40,9 @@
             this.lblUsername = new System.Windows.Forms.Label();
             this.tbUsername = new System.Windows.Forms.TextBox();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.cbIncudeContents = new System.Windows.Forms.CheckBox();
+            this.tbDestList = new System.Windows.Forms.ComboBox();
+            this.tbSourceList = new System.Windows.Forms.ComboBox();
             this.btnSwapSourceDest = new System.Windows.Forms.Button();
             this.btnAbort = new System.Windows.Forms.Button();
             this.cbMoveCopyOverwrite = new System.Windows.Forms.CheckBox();
@@ -51,8 +54,6 @@
             this.cbSimulate = new System.Windows.Forms.CheckBox();
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
-            this.tbDestList = new System.Windows.Forms.TextBox();
-            this.tbSourceList = new System.Windows.Forms.TextBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
             this.tbItemIDsInclude = new System.Windows.Forms.TextBox();
             this.label9 = new System.Windows.Forms.Label();
@@ -90,8 +91,7 @@
             // 
             // tb1
             // 
-            this.tb1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
+            this.tb1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tb1.Appearance = System.Windows.Forms.TabAppearance.FlatButtons;
             this.tb1.Controls.Add(this.tabPage2);
@@ -99,7 +99,7 @@
             this.tb1.Location = new System.Drawing.Point(12, 56);
             this.tb1.Name = "tb1";
             this.tb1.SelectedIndex = 0;
-            this.tb1.Size = new System.Drawing.Size(909, 471);
+            this.tb1.Size = new System.Drawing.Size(947, 408);
             this.tb1.TabIndex = 500;
             // 
             // tabPage2
@@ -116,19 +116,22 @@
             this.tabPage2.Controls.Add(this.tbUsername);
             this.tabPage2.Location = new System.Drawing.Point(4, 25);
             this.tabPage2.Name = "tabPage2";
-            this.tabPage2.Size = new System.Drawing.Size(901, 442);
+            this.tabPage2.Size = new System.Drawing.Size(939, 379);
             this.tabPage2.TabIndex = 8;
             this.tabPage2.Text = "Login Info";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
             // btnTestConnection
             // 
+            this.btnTestConnection.BackColor = System.Drawing.Color.Green;
+            this.btnTestConnection.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnTestConnection.ForeColor = System.Drawing.SystemColors.ButtonHighlight;
             this.btnTestConnection.Location = new System.Drawing.Point(67, 111);
             this.btnTestConnection.Name = "btnTestConnection";
-            this.btnTestConnection.Size = new System.Drawing.Size(120, 23);
+            this.btnTestConnection.Size = new System.Drawing.Size(301, 34);
             this.btnTestConnection.TabIndex = 13;
-            this.btnTestConnection.Text = "Test Connection";
-            this.btnTestConnection.UseVisualStyleBackColor = true;
+            this.btnTestConnection.Text = "Test Connection (pop Drop-Downs)";
+            this.btnTestConnection.UseVisualStyleBackColor = false;
             this.btnTestConnection.Click += new System.EventHandler(this.btnTestConnection_Click);
             // 
             // cbIsSPOnline
@@ -194,6 +197,9 @@
             // 
             this.tabPage1.AutoScroll = true;
             this.tabPage1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.tabPage1.Controls.Add(this.cbIncudeContents);
+            this.tabPage1.Controls.Add(this.tbDestList);
+            this.tabPage1.Controls.Add(this.tbSourceList);
             this.tabPage1.Controls.Add(this.btnSwapSourceDest);
             this.tabPage1.Controls.Add(this.btnAbort);
             this.tabPage1.Controls.Add(this.cbMoveCopyOverwrite);
@@ -205,16 +211,41 @@
             this.tabPage1.Controls.Add(this.cbSimulate);
             this.tabPage1.Controls.Add(this.label3);
             this.tabPage1.Controls.Add(this.label2);
-            this.tabPage1.Controls.Add(this.tbDestList);
-            this.tabPage1.Controls.Add(this.tbSourceList);
             this.tabPage1.Controls.Add(this.groupBox1);
             this.tabPage1.Location = new System.Drawing.Point(4, 25);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPage1.Size = new System.Drawing.Size(901, 442);
+            this.tabPage1.Size = new System.Drawing.Size(939, 379);
             this.tabPage1.TabIndex = 9;
             this.tabPage1.Text = "Actions";
             this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // cbIncudeContents
+            // 
+            this.cbIncudeContents.AutoSize = true;
+            this.cbIncudeContents.Location = new System.Drawing.Point(404, 39);
+            this.cbIncudeContents.Name = "cbIncudeContents";
+            this.cbIncudeContents.Size = new System.Drawing.Size(169, 17);
+            this.cbIncudeContents.TabIndex = 38;
+            this.cbIncudeContents.Text = "Include Content when Archive";
+            this.cbIncudeContents.UseVisualStyleBackColor = true;
+            // 
+            // tbDestList
+            // 
+            this.tbDestList.FormattingEnabled = true;
+            this.tbDestList.Location = new System.Drawing.Point(149, 63);
+            this.tbDestList.Name = "tbDestList";
+            this.tbDestList.Size = new System.Drawing.Size(249, 21);
+            this.tbDestList.TabIndex = 37;
+            // 
+            // tbSourceList
+            // 
+            this.tbSourceList.FormattingEnabled = true;
+            this.tbSourceList.Location = new System.Drawing.Point(149, 35);
+            this.tbSourceList.Name = "tbSourceList";
+            this.tbSourceList.Size = new System.Drawing.Size(249, 21);
+            this.tbSourceList.TabIndex = 36;
+            this.tbSourceList.SelectedIndexChanged += new System.EventHandler(this.tbSourceList_SelectedIndexChanged);
             // 
             // btnSwapSourceDest
             // 
@@ -251,6 +282,7 @@
             // 
             // btnStartMain
             // 
+            this.btnStartMain.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnStartMain.ForeColor = System.Drawing.Color.Green;
             this.btnStartMain.Location = new System.Drawing.Point(148, 114);
             this.btnStartMain.Name = "btnStartMain";
@@ -276,7 +308,8 @@
             this.ddlActions.Items.AddRange(new object[] {
             "Move Files",
             "Copy Files",
-            "Delete Files"});
+            "Delete Files",
+            "Archive List"});
             this.ddlActions.Location = new System.Drawing.Point(148, 9);
             this.ddlActions.Name = "ddlActions";
             this.ddlActions.Size = new System.Drawing.Size(121, 21);
@@ -296,7 +329,7 @@
             // 
             this.tbItemsToProcess.Location = new System.Drawing.Point(148, 88);
             this.tbItemsToProcess.Name = "tbItemsToProcess";
-            this.tbItemsToProcess.Size = new System.Drawing.Size(112, 20);
+            this.tbItemsToProcess.Size = new System.Drawing.Size(120, 20);
             this.tbItemsToProcess.TabIndex = 19;
             this.tbItemsToProcess.Text = "0";
             this.tbItemsToProcess.MouseEnter += new System.EventHandler(this.tbItemsToProcess_MouseEnter);
@@ -330,20 +363,6 @@
             this.label2.TabIndex = 16;
             this.label2.Text = "Source List Name:";
             // 
-            // tbDestList
-            // 
-            this.tbDestList.Location = new System.Drawing.Point(148, 62);
-            this.tbDestList.Name = "tbDestList";
-            this.tbDestList.Size = new System.Drawing.Size(250, 20);
-            this.tbDestList.TabIndex = 1;
-            // 
-            // tbSourceList
-            // 
-            this.tbSourceList.Location = new System.Drawing.Point(148, 36);
-            this.tbSourceList.Name = "tbSourceList";
-            this.tbSourceList.Size = new System.Drawing.Size(250, 20);
-            this.tbSourceList.TabIndex = 0;
-            // 
             // groupBox1
             // 
             this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
@@ -358,7 +377,7 @@
             this.groupBox1.Controls.Add(this.tbFilterServerRelPathInc);
             this.groupBox1.Location = new System.Drawing.Point(12, 172);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(880, 262);
+            this.groupBox1.Size = new System.Drawing.Size(918, 193);
             this.groupBox1.TabIndex = 35;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Filters";
@@ -369,7 +388,7 @@
             this.tbItemIDsInclude.Multiline = true;
             this.tbItemIDsInclude.Name = "tbItemIDsInclude";
             this.tbItemIDsInclude.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbItemIDsInclude.Size = new System.Drawing.Size(161, 110);
+            this.tbItemIDsInclude.Size = new System.Drawing.Size(161, 75);
             this.tbItemIDsInclude.TabIndex = 25;
             this.tbItemIDsInclude.MouseEnter += new System.EventHandler(this.tbItemIDsInclude_MouseEnter);
             this.tbItemIDsInclude.MouseLeave += new System.EventHandler(this.tbItemIDsInclude_MouseLeave);
@@ -385,11 +404,11 @@
             // 
             // tbItemIDsExclude
             // 
-            this.tbItemIDsExclude.Location = new System.Drawing.Point(135, 135);
+            this.tbItemIDsExclude.Location = new System.Drawing.Point(135, 110);
             this.tbItemIDsExclude.Multiline = true;
             this.tbItemIDsExclude.Name = "tbItemIDsExclude";
             this.tbItemIDsExclude.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.tbItemIDsExclude.Size = new System.Drawing.Size(161, 110);
+            this.tbItemIDsExclude.Size = new System.Drawing.Size(161, 75);
             this.tbItemIDsExclude.TabIndex = 26;
             this.tbItemIDsExclude.MouseEnter += new System.EventHandler(this.tbItemIDsExclude_MouseEnter);
             this.tbItemIDsExclude.MouseLeave += new System.EventHandler(this.tbItemIDsExclude_MouseLeave);
@@ -424,7 +443,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(31, 138);
+            this.label7.Location = new System.Drawing.Point(31, 113);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(97, 13);
             this.label7.TabIndex = 28;
@@ -455,7 +474,7 @@
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.exitToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(35, 20);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
             this.fileToolStripMenuItem.Text = "File";
             // 
             // exitToolStripMenuItem
@@ -470,26 +489,27 @@
             this.helpToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
-            this.helpToolStripMenuItem.Size = new System.Drawing.Size(40, 20);
+            this.helpToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.helpToolStripMenuItem.Text = "Help";
             // 
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(103, 22);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(107, 22);
             this.aboutToolStripMenuItem.Text = "About";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
             // tbStatus
             // 
-            this.tbStatus.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.tbStatus.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbStatus.BackColor = System.Drawing.SystemColors.Info;
-            this.tbStatus.Location = new System.Drawing.Point(12, 533);
+            this.tbStatus.Location = new System.Drawing.Point(12, 470);
             this.tbStatus.Multiline = true;
             this.tbStatus.Name = "tbStatus";
             this.tbStatus.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-            this.tbStatus.Size = new System.Drawing.Size(948, 195);
+            this.tbStatus.Size = new System.Drawing.Size(948, 258);
             this.tbStatus.TabIndex = 2;
             // 
             // tbSiteUrl
@@ -498,7 +518,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tbSiteUrl.Location = new System.Drawing.Point(75, 30);
             this.tbSiteUrl.Name = "tbSiteUrl";
-            this.tbSiteUrl.Size = new System.Drawing.Size(842, 20);
+            this.tbSiteUrl.Size = new System.Drawing.Size(806, 20);
             this.tbSiteUrl.TabIndex = 0;
             // 
             // label1
@@ -561,22 +581,21 @@
             this.imageBandR.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.imageBandR.Cursor = System.Windows.Forms.Cursors.Hand;
             this.imageBandR.Image = ((System.Drawing.Image)(resources.GetObject("imageBandR.Image")));
-            this.imageBandR.Location = new System.Drawing.Point(927, 27);
+            this.imageBandR.Location = new System.Drawing.Point(904, 27);
             this.imageBandR.Name = "imageBandR";
-            this.imageBandR.Size = new System.Drawing.Size(33, 45);
-            this.imageBandR.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.imageBandR.Size = new System.Drawing.Size(50, 50);
+            this.imageBandR.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.imageBandR.TabIndex = 10;
             this.imageBandR.TabStop = false;
-            this.imageBandR.Click += new System.EventHandler(this.imageBandR_Click);
             // 
             // imageBandRwait
             // 
             this.imageBandRwait.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.imageBandRwait.Image = ((System.Drawing.Image)(resources.GetObject("imageBandRwait.Image")));
-            this.imageBandRwait.Location = new System.Drawing.Point(927, 27);
+            this.imageBandRwait.Location = new System.Drawing.Point(904, 27);
             this.imageBandRwait.Name = "imageBandRwait";
-            this.imageBandRwait.Size = new System.Drawing.Size(33, 45);
-            this.imageBandRwait.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.imageBandRwait.Size = new System.Drawing.Size(50, 50);
+            this.imageBandRwait.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.imageBandRwait.TabIndex = 11;
             this.imageBandRwait.TabStop = false;
             // 
@@ -677,8 +696,6 @@
         private System.Windows.Forms.Button btnTestConnection;
         private System.Windows.Forms.TabPage tabPage1;
         private System.Windows.Forms.Label label2;
-        private System.Windows.Forms.TextBox tbDestList;
-        private System.Windows.Forms.TextBox tbSourceList;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.CheckBox cbSimulate;
         private System.Windows.Forms.Label label4;
@@ -698,6 +715,9 @@
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.TextBox tbFilterServerRelPathInc;
+        private System.Windows.Forms.ComboBox tbDestList;
+        private System.Windows.Forms.ComboBox tbSourceList;
+        private System.Windows.Forms.CheckBox cbIncudeContents;
     }
 }
 

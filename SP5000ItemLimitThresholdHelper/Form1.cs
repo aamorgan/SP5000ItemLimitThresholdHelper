@@ -1,18 +1,22 @@
 ﻿using BandR;
 using Microsoft.SharePoint.Client;
+using Microsoft.SharePoint;
+using SP5000ItemLimitThresholdHelper.classes;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web;
 using System.Windows.Forms;
+using System.Xml.Linq;
+using System.Text;
 
 namespace SP5000ItemLimitThresholdHelper
-{
+{ 
     public partial class Form1 : System.Windows.Forms.Form
     {
 
@@ -22,6 +26,8 @@ namespace SP5000ItemLimitThresholdHelper
         private bool showFullErrMsgs = GenUtil.SafeToBool(ConfigurationManager.AppSettings["showFullErrMsgs"]);
         private bool ErrorOccurred = false;
         private string selAction;
+        private ListCollection collLists;
+        private List<string> ListNames;
 
 
 
@@ -40,7 +46,7 @@ namespace SP5000ItemLimitThresholdHelper
 
             this.FormClosed += Form1_FormClosed;
 
-            ddlActions.SelectedItem = "Move Files";
+            ddlActions.SelectedItem = "Archive List";
             ddlActions_SelectedIndexChanged(null, null);
 
             LoadSettingsFromRegistry();
@@ -102,9 +108,6 @@ namespace SP5000ItemLimitThresholdHelper
                 ctx.ExecutingWebRequest += new EventHandler<WebRequestEventArgs>(ctx_ExecutingWebRequest_FixForMixedMode);
             }
         }
-
-
-
 
         /// <summary>
         /// </summary>
@@ -430,9 +433,19 @@ namespace SP5000ItemLimitThresholdHelper
                     FixCtxForMixedMode(ctx);
 
                     Web web = ctx.Web;
+                    collLists = web.Lists;
+                    ctx.Load(collLists);
                     ctx.Load(web, w => w.Title);
                     ctx.ExecuteQuery();
+                    ListNames = new List<string>();
+                    foreach (Microsoft.SharePoint.Client.List oList in collLists.Where(cl => !cl.Title.Contains("_Archive")))
+                    {
+                        ListNames.Add(oList.Title);
+                    }
+                    tbSourceList.Items.AddRange(ListNames.ToArray());
+                    tbDestList.Items.AddRange(ListNames.ToArray());
                     tcout("Site loaded", web.Title);
+                    tcout($"{ListNames.Count} List, Apps and Folder found.");
                 }
             }
             catch (Exception ex)
@@ -465,14 +478,28 @@ namespace SP5000ItemLimitThresholdHelper
             lblNoErrorFound.Visible = lblErrorFound.Visible = ErrorOccurred = false;
 
             selAction = ddlActions.SelectedItem == null ? "" : ddlActions.SelectedItem.ToString();
-
+            if (selAction.IsEqual("Archive List"))
+            {
+                tbDestList.Text = tbSourceList.Text + "_Archive";
+            }
             bgw = new BackgroundWorker();
+            var args = new UISettings {
+                SiteURL = tbSiteUrl.Text.Trim(),
+                Source = tbSourceList.Text.Trim(),
+                Dest = tbDestList.Text.Trim(),
+                Simulate = cbSimulate.Checked,
+                MCOverwrite = cbMoveCopyOverwrite.Checked,
+                IdsIncl = ConvertToListOfInts(tbItemIDsInclude.Text.Trim()),
+                IdsExcl = ConvertToListOfInts(tbItemIDsExclude.Text.Trim()),
+                UrlsIncl = tbFilterServerRelPathInc.Text.Trim().TrimEnd("/".ToCharArray()),
+                UrlsExcl = tbFilterServerRelPathExc.Text.Trim().TrimEnd("/".ToCharArray())
+            };
             bgw.DoWork += new DoWorkEventHandler(bgw_StartMain);
             bgw.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bgw_StartMain_End);
             bgw.ProgressChanged += new ProgressChangedEventHandler(BgwReportProgress);
             bgw.WorkerReportsProgress = true;
             bgw.WorkerSupportsCancellation = true;
-            bgw.RunWorkerAsync();
+            bgw.RunWorkerAsync(args);
         }
 
         /// <summary>
@@ -487,23 +514,24 @@ namespace SP5000ItemLimitThresholdHelper
             // update rowlimit if # of items to process is less, no reason to get more items than needed
             if (numItemsToProc < rowLimit && numItemsToProc > 0) rowLimit = numItemsToProc;
 
-            var siteUrl = tbSiteUrl.Text.Trim();
-            var sourceListName = tbSourceList.Text.Trim();
-            var destListName = tbDestList.Text.Trim();
-            var simulate = cbSimulate.Checked;
-            var overwrite = cbMoveCopyOverwrite.Checked;
+            var args = (UISettings)e.Argument;
+            var siteUrl = args.SiteURL;
+            var sourceListName = args.Source;
+            var destListName = args.Dest;
+            var simulate = args.Simulate;
+            var overwrite = args.MCOverwrite;
 
-            var fileIdsInclusive = ConvertToListOfInts(tbItemIDsInclude.Text.Trim());
-            var fileIdsExclusive = ConvertToListOfInts(tbItemIDsExclude.Text.Trim());
+            var fileIdsInclusive = args.IdsIncl;
+            var fileIdsExclusive =args.IdsExcl;
 
-            var folderUrlIncl = tbFilterServerRelPathInc.Text.Trim().TrimEnd("/".ToCharArray());
-            var folderUrlExcl = tbFilterServerRelPathExc.Text.Trim().TrimEnd("/".ToCharArray());
+            var folderUrlIncl = args.UrlsIncl;
+            var folderUrlExcl = args.UrlsExcl;
 
             if (folderUrlIncl.Contains("%"))
                 folderUrlIncl = HttpUtility.UrlDecode(folderUrlIncl);
             if (folderUrlExcl.Contains("%"))
                 folderUrlExcl = HttpUtility.UrlDecode(folderUrlExcl);
-
+           
             tcout("Site URL", siteUrl);
             tcout("Username", tbUsername.Text.Trim());
             tcout("Action", selAction);
@@ -512,6 +540,11 @@ namespace SP5000ItemLimitThresholdHelper
                 tcout("Destination List Name", destListName);
             if (!selAction.IsEqual("Delete Files"))
                 tcout("Overwrite", overwrite);
+            if (selAction.IsEqual("Archive List"))
+            {
+                destListName = sourceListName + "_Archive";
+                tcout("Destination List Name", destListName);
+            }
             tcout("Number of items to process", numItemsToProc);
             tcout("Query row limit batch size", rowLimit);
             tcout("Simulate", simulate.ToString().ToUpper());
@@ -544,30 +577,32 @@ namespace SP5000ItemLimitThresholdHelper
             try
             {
                 var targetSite = new Uri(siteUrl);
-
-                using (ClientContext ctx = new ClientContext(targetSite))
-                {
-                    ctx.Credentials = BuildCreds();
-                    FixCtxForMixedMode(ctx);
-
-                    Web web = ctx.Web;
-                    ctx.Load(web, w => w.Title);
-                    ctx.ExecuteQuery();
-                    tcout("Site loaded", web.Title);
-
-                    if (selAction.IsEqual("Move Files") || selAction.IsEqual("Copy Files"))
+ //               SPSecurity.RunWithElevatedPrivileges((SPSecurity.CodeToRunElevated)(() =>
+ //               {
+                    using (ClientContext ctx = new ClientContext(targetSite))
                     {
-                        CopyMoveFiles(bwAsync, rowLimit, numItemsToProc, sourceListName, destListName, simulate, overwrite, fileIdsInclusive, fileIdsExclusive, folderUrlIncl, folderUrlExcl, ctx);
+                        ctx.Credentials = BuildCreds();
+                        FixCtxForMixedMode(ctx);
+
+                        Web web = ctx.Web;
+                        ctx.Load(web, w => w.Title);
+                        ctx.ExecuteQuery();
+                        tcout("Site loaded", web.Title);
+
+                        if (selAction.IsEqual("Move Files") || selAction.IsEqual("Copy Files") || selAction.IsEqual("Archive List"))
+                        {
+                            CopyMoveArchiveListFiles(bwAsync, rowLimit, numItemsToProc, sourceListName, destListName, simulate, overwrite, fileIdsInclusive, fileIdsExclusive, folderUrlIncl, folderUrlExcl, ctx);
+                        }
+                        else if (selAction.IsEqual("Delete Files"))
+                        {
+                            DeleteFiles(bwAsync, rowLimit, numItemsToProc, sourceListName, destListName, simulate, overwrite, fileIdsInclusive, fileIdsExclusive, folderUrlIncl, folderUrlExcl, ctx);
+                        }
+                        else
+                        {
+                            tcout("Invalid Action Selected.");
+                        }
                     }
-                    else if (selAction.IsEqual("Delete Files"))
-                    {
-                        DeleteFiles(bwAsync, rowLimit, numItemsToProc, sourceListName, destListName, simulate, overwrite, fileIdsInclusive, fileIdsExclusive, folderUrlIncl, folderUrlExcl, ctx);
-                    }
-                    else
-                    {
-                        tcout("Invalid Action Selected.");
-                    }
-                }
+                //}));
             }
             catch (Exception ex)
             {
@@ -580,6 +615,8 @@ namespace SP5000ItemLimitThresholdHelper
         /// </summary>
         private void DeleteFiles(BackgroundWorker bwAsync, int rowLimit, int numItemsToProc, string sourceListName, string destListName, bool simulate, bool overwrite, List<int> fileIdsInclusive, List<int> fileIdsExclusive, string folderUrlIncl, string folderUrlExcl, ClientContext ctx)
         {
+            return; // DO NOT DELETE ANYTHING -- TESTING
+
             int i = 0;
 
             // list source
@@ -849,19 +886,20 @@ namespace SP5000ItemLimitThresholdHelper
             }
         }
 
-        /// <summary>
-        /// </summary>
-        private void CopyMoveFiles(BackgroundWorker bwAsync, int rowLimit, int numItemsToProc, string sourceListName, string destListName, bool simulate, bool overwrite, List<int> fileIdsInclusive, List<int> fileIdsExclusive, string folderUrlIncl, string folderUrlExcl, ClientContext ctx)
+
+        private void CopyMoveArchiveListFiles(BackgroundWorker bwAsync, int rowLimit, int numItemsToProc, string sourceListName, string destListName, bool simulate, bool overwrite, List<int> fileIdsInclusive, List<int> fileIdsExclusive, string folderUrlIncl, string folderUrlExcl, ClientContext ctx)
         {
             int i = 0;
             var isMove = selAction.IsEqual("Move Files");
+            var isArchive = selAction.IsEqual("Archive List");
+            var isOverwrite = cbMoveCopyOverwrite.Checked;
 
             // list source
             tcout("Loading Source List...");
             var listSource = ctx.Web.Lists.GetByTitle(sourceListName);
 
             var listRootFolderSource = listSource.RootFolder;
-            ctx.Load(listSource, x => x.RootFolder, x => x.ItemCount);
+            ctx.Load(listSource, x => x.RootFolder, x => x.ItemCount, x => x.SchemaXml);
             ctx.ExecuteQuery();
 
             var listServerRelUrlSource = listRootFolderSource.ServerRelativeUrl;
@@ -875,10 +913,76 @@ namespace SP5000ItemLimitThresholdHelper
             // list destination
             tcout("Loading Destination List...");
             var listDest = ctx.Web.Lists.GetByTitle(destListName);
-
             var listRootFolderDest = listDest.RootFolder;
-            ctx.Load(listDest, x => x.RootFolder, x => x.ItemCount);
-            ctx.ExecuteQuery();
+            bool itsNotNew = true;
+            if (isArchive)
+            {
+                try
+                {
+                    ctx.Load(listDest, x => x.RootFolder, x => x.ItemCount);
+                    ctx.ExecuteQuery();
+                    itsNotNew = false;
+                }
+                catch
+                {
+                    tcout("Archive Destination List does not exist .. Creating it now ..");
+                    // Attempt to create the list
+                    ListCreationInformation listCreationInfo = new ListCreationInformation();
+                    listCreationInfo.Title = destListName;
+                    listCreationInfo.Description = $"Archive of the {sourceListName} list";
+                    listCreationInfo.TemplateType = (int)ListTemplateType.GenericList;
+                    List oList = ctx.Web.Lists.Add(listCreationInfo);
+                    ctx.ExecuteQuery();
+
+                    // try to access the list again
+                    listDest = ctx.Web.Lists.GetByTitle(destListName);
+ 
+                    ctx.Load(listDest, x => x.Fields);
+                    ctx.ExecuteQuery();
+                    XElement fieldsXML = XElement.Parse(ExtractFields(listSource.SchemaXml));
+                    // First do non-calculated fields
+                    List<XElement> fieldsNonCalc = fieldsXML.Elements("Field").ToList().Where(f => ((f.Attribute("Type") != null) ? (f.Attribute("Type").Value != "Calculated") : true)).ToList();
+                    string displayName;
+                    foreach (XElement field in fieldsNonCalc)
+                    {
+                        displayName = field.Attribute("DisplayName").Value;
+                        string internalName = field.Attribute("Name").Value;
+                        field.Attribute("DisplayName").Value = internalName;
+                        Field spField = listDest.Fields.AddFieldAsXml(field.ToString(), true, AddFieldOptions.DefaultValue);
+                        spField.Title = displayName;
+                        spField.Update();
+                    }
+                    // Reload to access the lists new fields
+                    listDest = ctx.Web.Lists.GetByTitle(destListName);
+                    ctx.Load(listDest, x => x.Fields);
+                    ctx.ExecuteQuery();
+
+                    List<XElement> fieldsCalc = fieldsXML.Elements("Field").ToList().Where(f => ((f.Attribute("Type") != null) ? (f.Attribute("Type").Value == "Calculated") : true)).ToList();
+                    foreach (XElement field in fieldsCalc)
+                    {
+                        displayName = field.Attribute("DisplayName").Value;
+                        string internalName = field.Attribute("Name").Value;
+                        field.Attribute("DisplayName").Value = internalName;
+                        Field spField = listDest.Fields.AddFieldAsXml(field.ToString(), true, AddFieldOptions.DefaultValue);
+                        spField.Title = displayName;
+                        spField.Update();
+                        try
+                        {
+                            ctx.ExecuteQuery();
+                        } catch(Exception ex)
+                        {
+                            tcout($"Trouble adding {displayName}. Details {ex.Message}");
+                            //throw ex;
+                        }
+                    }
+                }
+
+            }
+            if (itsNotNew)
+            {
+                ctx.Load(listDest, x => x.RootFolder, x => x.ItemCount);
+                ctx.ExecuteQuery();
+            }
 
             var listServerRelUrlDest = listRootFolderDest.ServerRelativeUrl;
             ctx.Load(listRootFolderDest, y => y.ServerRelativeUrl);
@@ -893,14 +997,18 @@ namespace SP5000ItemLimitThresholdHelper
                 tcout("No items found in Source List, quitting.");
                 return;
             }
-
+            if(isArchive && (listSource.ItemCount == listDest.ItemCount))
+            {
+                tcout("List appears to have already been archived. Quitting!");
+                return;
+            }
             // begin search
             tcout("Begin finding folders/files...");
             ListItemCollectionPosition pos = null;
 
             var lstFileObjs = new List<CustFileObj>();
 
-            while (true)
+            while (cbIncudeContents.Checked)
             {
                 var prog = (Convert.ToDouble(i) / Convert.ToDouble(listSource.ItemCount)) * 100;
                 tcout(string.Format("Execute paged query, pagesize={0}, progress={1}%", rowLimit, prog.ToString("##0.##")));
@@ -1117,107 +1225,216 @@ namespace SP5000ItemLimitThresholdHelper
 
                         var oldFileServerRelUrl = curFile.fullPath;
                         var newFileServerRelUrl = curFile.fullPath.Replace(listServerRelUrlSource, listServerRelUrlDest);
-
+                        
                         var prog = (Convert.ToDouble(i) / Convert.ToDouble(fileCount)) * 100;
                         tcout(string.Format("{0}/{1} - {2}%", i, fileCount, prog.ToString("##0.##")), isMove ? "Move" : "Copy" + " File", oldFileServerRelUrl);
 
-                        if (!overwrite)
-                        {
-                            try
-                            {
-                                // before action check if file exists at destination
-                                var newFile = ctx.Web.GetFileByServerRelativeUrl(newFileServerRelUrl);
-                                ctx.Load(newFile, f => f.Exists);
-                                ctx.ExecuteQuery();
+                        CopyItem(simulate, isMove, isOverwrite, sourceListName, destListName, curFile.fileId.ToString(), ctx);
+                        #region hideme
+                        //    if (!overwrite)
+                        //    {
+                        //        var newFile = ctx.Web.GetFileByServerRelativeUrl(newFileServerRelUrl);
+                        //        bool fileExist = false;
+                        //        try
+                        //        {
+                        //            // before action check if file exists at destination
+                        //            ctx.Load(newFile, f => f.Exists);
+                        //            ctx.ExecuteQuery();
+                        //            fileExist = newFile.Exists;
+                        //        }
+                        //        catch (Exception ex)
+                        //        {
+                        //            tcout(" *** ERROR checking if file exists in destination", GetExcMsg(ex));
+                        //        }
 
-                                if (newFile.Exists)
-                                {
-                                    tcout(" -- File already exists, skipped.");
-                                }
-                                else
-                                {
-                                    try
-                                    {
-                                        var sw = new Stopwatch();
-                                        sw.Start();
+                        //        if (fileExist)
+                        //        {
+                        //            tcout(" -- File already exists, skipped.");
+                        //        }
+                        //        else
+                        //        {
+                        //            try
+                        //            {
+                        //                var sw = new Stopwatch();
+                        //                sw.Start();
 
-                                        if (!simulate)
-                                        {
-                                            var oldFile = ctx.Web.GetFileByServerRelativeUrl(oldFileServerRelUrl);
+                        //                if (!simulate)
+                        //                {
+                        //                    var oldFile = ctx.Web.GetFileByServerRelativeUrl(oldFileServerRelUrl);
 
-                                            if (isMove)
-                                            {
-                                                oldFile.MoveTo(newFileServerRelUrl, MoveOperations.None);
-                                            }
-                                            else
-                                            {
-                                                oldFile.CopyTo(newFileServerRelUrl, false);
-                                            }
+                        //                    if (isMove)
+                        //                    {
+                        //                        oldFile.MoveTo(newFileServerRelUrl, MoveOperations.None);
+                        //                    }
+                        //                    else
+                        //                    {
+                        //                        oldFile.CopyTo(newFileServerRelUrl, false);
+                        //                    }
 
-                                            ctx.ExecuteQuery();
-                                        }
-                                        else
-                                        {
-                                            Thread.Sleep(300);
-                                        }
+                        //                    ctx.ExecuteQuery();
+                        //                }
+                        //                else
+                        //                {
+                        //                    Thread.Sleep(300);
+                        //                }
 
-                                        sw.Stop();
+                        //                sw.Stop();
 
-                                        tcout(" -- File " + (isMove ? "moved" : "copied") + "!" + string.Format(" ({0}s)", sw.Elapsed.TotalSeconds.ToString("##0.##")));
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                tcout(" *** ERROR checking if file exists in destination", GetExcMsg(ex));
-                            }
-                        }
-                        else
-                        {
-                            // always copy/move file, overwrite on
-                            try
-                            {
-                                var sw = new Stopwatch();
-                                sw.Start();
+                        //                tcout(" -- File " + (isMove ? "moved" : "copied") + "!" + string.Format(" ({0}s)", sw.Elapsed.TotalSeconds.ToString("##0.##")));
+                        //            }
+                        //            catch (Exception ex)
+                        //            {
+                        //                tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
+                        //            }
+                        //        }
+                        //    }
+                        //    else
+                        //    {
+                        //        // always copy/move file, overwrite on
+                        //        try
+                        //        {
+                        //            var sw = new Stopwatch();
+                        //            sw.Start();
 
-                                if (!simulate)
-                                {
-                                    var oldFile = ctx.Web.GetFileByServerRelativeUrl(oldFileServerRelUrl);
+                        //            if (!simulate)
+                        //            {
+                        //                var oldFile = ctx.Web.GetFileByServerRelativeUrl(oldFileServerRelUrl);
 
-                                    if (isMove)
-                                    {
-                                        oldFile.MoveTo(newFileServerRelUrl, MoveOperations.Overwrite);
-                                    }
-                                    else
-                                    {
-                                        oldFile.CopyTo(newFileServerRelUrl, true);
-                                    }
+                        //                if (isMove)
+                        //                {
+                        //                    oldFile.MoveTo(newFileServerRelUrl, MoveOperations.Overwrite);
+                        //                }
+                        //                else
+                        //                {
+                        //                    oldFile.CopyTo(newFileServerRelUrl, true);
+                        //                }
 
-                                    ctx.ExecuteQuery();
-                                }
-                                else
-                                {
-                                    Thread.Sleep(300);
-                                }
+                        //                ctx.ExecuteQuery();
+                        //            }
+                        //            else
+                        //            {
+                        //                Thread.Sleep(300);
+                        //            }
 
-                                sw.Stop();
+                        //            sw.Stop();
 
-                                tcout(" -- File " + (isMove ? "moved" : "copied") + "!" + string.Format(" ({0}s)", sw.Elapsed.TotalSeconds.ToString("##0.##")));
-                            }
-                            catch (Exception ex)
-                            {
-                                tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
-                            }
-                        }
+                        //            tcout(" -- File " + (isMove ? "moved" : "copied") + "!" + string.Format(" ({0}s)", sw.Elapsed.TotalSeconds.ToString("##0.##")));
+                        //        }
+                        //        catch (Exception ex)
+                        //        {
+                        //            tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
+                        //        }
+                        //    }
+                        #endregion
                     }
 
                     tcout(string.Format("Finished {0} files to destination.", isMove ? "move" : "copy"));
                 }
             }
+        }
+        private bool CopyItem(bool simulate, bool isMove, bool isOverwrite, string sourceListName, string destListName, string ID, ClientContext ctx)
+        {
+            if (!simulate)
+            {
+                var sourceList = ctx.Web.Lists.GetByTitle(sourceListName);
+                var sourceListFields = sourceList.Fields;
+                ctx.Load(sourceList);
+                ctx.Load(sourceListFields);
+                ctx.ExecuteQuery();
+
+                var destList = ctx.Web.Lists.GetByTitle(destListName);
+                ctx.Load(destList);
+                ctx.ExecuteQuery();
+
+                Dictionary<string, ListDataField> sourceFields = new Dictionary<string, ListDataField>();
+                var sourceQueryXML = new StringBuilder();
+                sourceQueryXML.Append("<View><Query><Where><Eq><FieldRef Name='ID' /><Value Type='Counter'>" + ID + "</Value></Eq></Where></Query><ViewFields>");
+
+                foreach (var sourceListField in sourceListFields)
+                {
+                    if (sourceListField.ReadOnlyField == false)
+                    {
+                        sourceFields.Add(sourceListField.InternalName, new ListDataField { DisplayName = sourceListField.Title, InternalName = sourceListField.InternalName, FieldType = sourceListField.TypeAsString });
+                        sourceQueryXML.Append("<FieldRef Name='" + sourceListField.InternalName + "' />");
+                    }
+                }
+
+                sourceQueryXML.Append("</ViewFields></View>");
+                var sourceQuery = new CamlQuery() { ViewXml = sourceQueryXML.ToString() };
+
+                ListItemCollection sourceItems = sourceList.GetItems(sourceQuery);
+
+                var sourceItem = sourceList.GetItemById(ID);
+                ctx.Load(sourceItem);
+                ctx.ExecuteQuery();
+
+                var destListCreationInfo = new ListItemCreationInformation();
+                var destItem = destList.AddItem(destListCreationInfo);
+                foreach (var sourceField in sourceFields)
+                {
+                    try
+                    {
+                        string sharepointified_Key = spify(sourceField.Key);
+                        destItem[sharepointified_Key] = sourceItem[sharepointified_Key];
+                    }
+                    catch
+                    {
+                        tcout($"Failed to copy Field '{sourceField.Key}'!");
+                    }
+                }
+                //Copy attachments
+                //foreach (string fileName in sourceItem.Attachments)
+                //{
+                //    SPFile file = sourceItem.ParentList.ParentWeb.GetFile(sourceItem.Attachments.UrlPrefix + fileName);
+                //    byte[] imageData = file.OpenBinary();
+                //    targetItem.Attachments.Add(fileName, imageData);
+                //}
+                try
+                {
+                    destItem.Update();
+                    ctx.ExecuteQuery();
+                }
+                catch (Exception ex)
+                {
+                    tcout(ex);
+                    return false;
+                }
+
+                return true;
+            }
+            else
+            {
+                Thread.Sleep(300);
+                return true;
+            }
+
+            return false;
+        }
+
+        private string spify(string key)
+        {
+           return key.Replace(" ", "_x0020_").Replace("(", "_x0028_").Replace(")", "_x0029_");
+        }
+
+        private string ExtractFields(string schemaXml)
+        {
+            string GUIDPattern = "\"[{|(]?[0-9a-fA-F]{8}[-]?([0-9a-fA-F]{4}[-]?){3}[0-9a-fA-F]{12}[)|}]?\"";
+            schemaXml = Regex.Replace(schemaXml, $"SourceID={GUIDPattern} ", "");
+            XElement schema = XElement.Parse(schemaXml);
+            XElement fieldsNode = schema.Element("Fields");
+            List<XElement> fields = fieldsNode.Elements("Field").ToList();
+            string fieldDef = "";
+            fields.Where(f => f.Attribute("SourceID") == null).ToList().ForEach(f => fieldDef += f.ToString());
+
+            Regex rgxId = new Regex($"ID={GUIDPattern} ");
+            foreach (Match match in rgxId.Matches(fieldDef))
+            {
+                fieldDef = fieldDef.Replace(match.Value, "");
+            }
+
+            fieldDef = Regex.Replace(fieldDef, " ColName=\"[a-zA-Z0-9_%%]*\" ", " ");
+            fieldDef = Regex.Replace(fieldDef, " RowOrdinal=\"[0-9]*\" ", " ");
+            return $"<Fields>{fieldDef}</Fields>";
         }
 
         /// <summary>
@@ -1237,13 +1454,21 @@ namespace SP5000ItemLimitThresholdHelper
         private void ddlActions_SelectedIndexChanged(object sender, EventArgs e)
         {
             selAction = ddlActions.SelectedItem == null ? "" : ddlActions.SelectedItem.ToString();
-
+            cbIncudeContents.Enabled = false;
+            cbIncudeContents.Checked = true;
             if (selAction.IsEqual("Delete Files"))
             {
                 cbMoveCopyOverwrite.Visible = false;
                 tbDestList.Enabled = false;
                 //tbItemIDsInclude.Enabled = false;
                 //tbItemIDsExclude.Enabled = false;
+            }
+            else if (selAction.IsEqual("Archive List"))
+            {
+                cbMoveCopyOverwrite.Visible = false;
+                tbDestList.Enabled = false;
+                tbDestList.Text = tbSourceList.Text + "_Archive";
+                cbIncudeContents.Enabled = true;
             }
             else
             {
@@ -1258,7 +1483,7 @@ namespace SP5000ItemLimitThresholdHelper
         {
             toolStripStatusLabel1.Text = "Enter number of items to process, 0 to process all.";
         }
-
+        #region Tooltips
         private void tbItemsToProcess_MouseLeave(object sender, EventArgs e)
         {
             toolStripStatusLabel1.Text = "";
@@ -1314,9 +1539,7 @@ namespace SP5000ItemLimitThresholdHelper
             toolStripStatusLabel1.Text = "";
         }
 
-
-
-
+        #endregion
 
         private void btnAbort_Click(object sender, EventArgs e)
         {
@@ -1327,18 +1550,12 @@ namespace SP5000ItemLimitThresholdHelper
             }
         }
 
-
-
-
-
-        private void imageBandR_Click(object sender, EventArgs e)
+        private void tbSourceList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Process.Start("http://www.bandrsolutions.com/?utm_source=SP5000ItemLimitThresholdHelper&utm_medium=application&utm_campaign=SP5000ItemLimitThresholdHelper");
+            if(ddlActions.SelectedItem as string == "Archive List")
+            {
+                tbDestList.Text = tbSourceList.Text + "_Arcive";
+            }
         }
-
-
-
-
-
     }
 }
