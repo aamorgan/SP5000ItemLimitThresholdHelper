@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SP5000ItemLimitThresholdHelper</RootNamespace>
     <AssemblyName>SP5000ItemLimitThresholdHelper</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
   </PropertyGroup>
@@ -105,8 +105,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="br_logo_small45.png" />
-    <Content Include="br_logo_small_wait45.png" />
     <Content Include="favicon_16x16.ico" />
     <Content Include="favicon_32x32.ico" />
     <Content Include="lib\EPPlus.dll" />

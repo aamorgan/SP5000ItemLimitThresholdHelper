@@ -79,6 +79,7 @@
             this.imageBandRwait = new System.Windows.Forms.PictureBox();
             this.lblErrorFound = new System.Windows.Forms.Label();
             this.lblNoErrorFound = new System.Windows.Forms.Label();
+            this.btnDelDest = new System.Windows.Forms.Button();
             this.tb1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage1.SuspendLayout();
@@ -197,6 +198,7 @@
             // 
             this.tabPage1.AutoScroll = true;
             this.tabPage1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.tabPage1.Controls.Add(this.btnDelDest);
             this.tabPage1.Controls.Add(this.cbIncudeContents);
             this.tabPage1.Controls.Add(this.tbDestList);
             this.tabPage1.Controls.Add(this.tbSourceList);
@@ -516,17 +518,19 @@
             // 
             this.tbSiteUrl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tbSiteUrl.Location = new System.Drawing.Point(75, 30);
+            this.tbSiteUrl.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tbSiteUrl.Location = new System.Drawing.Point(83, 30);
             this.tbSiteUrl.Name = "tbSiteUrl";
-            this.tbSiteUrl.Size = new System.Drawing.Size(806, 20);
+            this.tbSiteUrl.Size = new System.Drawing.Size(798, 22);
             this.tbSiteUrl.TabIndex = 0;
             // 
             // label1
             // 
             this.label1.AutoSize = true;
+            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.Location = new System.Drawing.Point(13, 33);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(50, 13);
+            this.label1.Size = new System.Drawing.Size(64, 15);
             this.label1.TabIndex = 4;
             this.label1.Text = "Site URL";
             // 
@@ -581,7 +585,7 @@
             this.imageBandR.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.imageBandR.Cursor = System.Windows.Forms.Cursors.Hand;
             this.imageBandR.Image = ((System.Drawing.Image)(resources.GetObject("imageBandR.Image")));
-            this.imageBandR.Location = new System.Drawing.Point(904, 27);
+            this.imageBandR.Location = new System.Drawing.Point(904, 26);
             this.imageBandR.Name = "imageBandR";
             this.imageBandR.Size = new System.Drawing.Size(50, 50);
             this.imageBandR.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -627,14 +631,25 @@
             this.lblNoErrorFound.TabIndex = 502;
             this.lblNoErrorFound.Text = "NO ERRORS FOUND";
             // 
+            // btnDelDest
+            // 
+            this.btnDelDest.Location = new System.Drawing.Point(461, 60);
+            this.btnDelDest.Name = "btnDelDest";
+            this.btnDelDest.Size = new System.Drawing.Size(144, 23);
+            this.btnDelDest.TabIndex = 39;
+            this.btnDelDest.Text = "Delete Destination List";
+            this.btnDelDest.UseVisualStyleBackColor = true;
+            this.btnDelDest.Click += new System.EventHandler(this.btnDelDest_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(972, 753);
+            this.Controls.Add(this.imageBandR);
+            this.Controls.Add(this.imageBandRwait);
             this.Controls.Add(this.lblNoErrorFound);
             this.Controls.Add(this.lblErrorFound);
-            this.Controls.Add(this.imageBandR);
             this.Controls.Add(this.lnkExport);
             this.Controls.Add(this.lnkClear);
             this.Controls.Add(this.statusStrip1);
@@ -643,7 +658,6 @@
             this.Controls.Add(this.tbStatus);
             this.Controls.Add(this.tb1);
             this.Controls.Add(this.menuStrip1);
-            this.Controls.Add(this.imageBandRwait);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MainMenuStrip = this.menuStrip1;
             this.Name = "Form1";
@@ -718,6 +732,7 @@
         private System.Windows.Forms.ComboBox tbDestList;
         private System.Windows.Forms.ComboBox tbSourceList;
         private System.Windows.Forms.CheckBox cbIncudeContents;
+        private System.Windows.Forms.Button btnDelDest;
     }
 }
 

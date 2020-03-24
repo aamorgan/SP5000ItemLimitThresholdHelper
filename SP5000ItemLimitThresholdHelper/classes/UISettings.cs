@@ -23,6 +23,8 @@ namespace SP5000ItemLimitThresholdHelper.classes
         public string InternalName { get; set; }
         public string FieldType { get; set; }
 
+        public bool Hidden { get; set; }
+
         public override string ToString()
         {
             return DisplayName;

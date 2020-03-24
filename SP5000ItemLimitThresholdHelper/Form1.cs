@@ -6,14 +6,15 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Configuration;
-using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web;
 using System.Windows.Forms;
+using System.Linq;
 using System.Xml.Linq;
 using System.Text;
+using System.IO;
 
 namespace SP5000ItemLimitThresholdHelper
 { 
@@ -39,17 +40,13 @@ namespace SP5000ItemLimitThresholdHelper
 
             toolStripStatusLabel1.Text = "";
 
-            // #testing
-            if (Environment.MachineName.IsEqual("PERSEUS"))
-            {
-            }
-
             this.FormClosed += Form1_FormClosed;
 
             ddlActions.SelectedItem = "Archive List";
             ddlActions_SelectedIndexChanged(null, null);
 
             LoadSettingsFromRegistry();
+            tbDestList.Text = tbSourceList.Text + "_Archive";
 
             imageBandR.Visible = true;
             imageBandRwait.Visible = false;
@@ -69,9 +66,6 @@ namespace SP5000ItemLimitThresholdHelper
             tbSourceList.Text = dest;
             tbDestList.Text = source;
         }
-
-
-
 
         /// <summary>
         /// </summary>
@@ -153,10 +147,6 @@ namespace SP5000ItemLimitThresholdHelper
             RegistryHelper.SaveRegStuff(json, out msg);
         }
 
-
-
-
-
         /// <summary>
         /// </summary>
         private List<int> ConvertToListOfInts(string s)
@@ -189,10 +179,6 @@ namespace SP5000ItemLimitThresholdHelper
 
             return lst;
         }
-
-
-
-
 
         /// <summary>
         /// </summary>
@@ -345,10 +331,6 @@ namespace SP5000ItemLimitThresholdHelper
             tbStatus.AppendText(e.UserState.ToString());
         }
 
-
-
-
-
         /// <summary>
         /// </summary>
         private void lnkClear_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -444,8 +426,12 @@ namespace SP5000ItemLimitThresholdHelper
                     }
                     tbSourceList.Items.AddRange(ListNames.ToArray());
                     tbDestList.Items.AddRange(ListNames.ToArray());
+                    tbSourceList.Text = ListNames.Any(ln => ln == tbSourceList.Text) ? tbSourceList.Text : "";
+                    tbDestList.Text = ListNames.Any(ln => ln.Contains(tbSourceList.Text)) ? tbSourceList.Text : "";
+
                     tcout("Site loaded", web.Title);
-                    tcout($"{ListNames.Count} List, Apps and Folder found.");
+                    tcout($"{ListNames.Count} Lists, Apps and Folders found.");
+                    tcout("Switch to 'Actions' tab to manage your lists");
                 }
             }
             catch (Exception ex)
@@ -577,8 +563,8 @@ namespace SP5000ItemLimitThresholdHelper
             try
             {
                 var targetSite = new Uri(siteUrl);
- //               SPSecurity.RunWithElevatedPrivileges((SPSecurity.CodeToRunElevated)(() =>
- //               {
+                //SPSecurity.RunWithElevatedPrivileges((SPSecurity.CodeToRunElevated)(() =>
+                //{
                     using (ClientContext ctx = new ClientContext(targetSite))
                     {
                         ctx.Credentials = BuildCreds();
@@ -615,8 +601,6 @@ namespace SP5000ItemLimitThresholdHelper
         /// </summary>
         private void DeleteFiles(BackgroundWorker bwAsync, int rowLimit, int numItemsToProc, string sourceListName, string destListName, bool simulate, bool overwrite, List<int> fileIdsInclusive, List<int> fileIdsExclusive, string folderUrlIncl, string folderUrlExcl, ClientContext ctx)
         {
-            return; // DO NOT DELETE ANYTHING -- TESTING
-
             int i = 0;
 
             // list source
@@ -934,50 +918,40 @@ namespace SP5000ItemLimitThresholdHelper
                     List oList = ctx.Web.Lists.Add(listCreationInfo);
                     ctx.ExecuteQuery();
 
-                    // try to access the list again
-                    listDest = ctx.Web.Lists.GetByTitle(destListName);
- 
-                    ctx.Load(listDest, x => x.Fields);
-                    ctx.ExecuteQuery();
+
                     XElement fieldsXML = XElement.Parse(ExtractFields(listSource.SchemaXml));
                     // First do non-calculated fields
                     List<XElement> fieldsNonCalc = fieldsXML.Elements("Field").ToList().Where(f => ((f.Attribute("Type") != null) ? (f.Attribute("Type").Value != "Calculated") : true)).ToList();
-                    string displayName;
-                    foreach (XElement field in fieldsNonCalc)
+                    if (!AddFieldsToList(fieldsNonCalc, sourceListName, destListName, ctx, false))
                     {
-                        displayName = field.Attribute("DisplayName").Value;
-                        string internalName = field.Attribute("Name").Value;
-                        field.Attribute("DisplayName").Value = internalName;
-                        Field spField = listDest.Fields.AddFieldAsXml(field.ToString(), true, AddFieldOptions.DefaultValue);
-                        spField.Title = displayName;
-                        spField.Update();
+                        tcout("Error creating Non-Calc fields, probably gonna have to bail .. trying the Calc fields");
                     }
-                    // Reload to access the lists new fields
-                    listDest = ctx.Web.Lists.GetByTitle(destListName);
-                    ctx.Load(listDest, x => x.Fields);
-                    ctx.ExecuteQuery();
 
-                    List<XElement> fieldsCalc = fieldsXML.Elements("Field").ToList().Where(f => ((f.Attribute("Type") != null) ? (f.Attribute("Type").Value == "Calculated") : true)).ToList();
-                    foreach (XElement field in fieldsCalc)
-                    {
-                        displayName = field.Attribute("DisplayName").Value;
-                        string internalName = field.Attribute("Name").Value;
-                        field.Attribute("DisplayName").Value = internalName;
-                        Field spField = listDest.Fields.AddFieldAsXml(field.ToString(), true, AddFieldOptions.DefaultValue);
-                        spField.Title = displayName;
-                        spField.Update();
-                        try
-                        {
-                            ctx.ExecuteQuery();
-                        } catch(Exception ex)
-                        {
-                            tcout($"Trouble adding {displayName}. Details {ex.Message}");
-                            //throw ex;
-                        }
-                    }
+                    // Skip Calculated field.  They are hard!
+                    //List<XElement> fieldsCalc = fieldsXML.Elements("Field").ToList().Where(f => ((f.Attribute("Type") != null) ? (f.Attribute("Type").Value == "Calculated") : true)).ToList();
+                    //if(!AddFieldsToList(fieldsCalc, sourceListName, destListName, ctx, false))
+                    //{
+                    //    tcout("Error creating Calc fields, Gonna have to bail!");
+                    //    //return;
+                    //}
                 }
-
             }
+
+            var destList = ctx.Web.Lists.GetByTitle(destListName);
+            var destListFields = destList.Fields;
+            ctx.Load(destList);
+            ctx.Load(destListFields);
+            ctx.ExecuteQuery();
+            //foreach (var destfield in destListFields.Where(d => !d.ReadOnlyField))
+            //{
+            //    tcout($"--->   RO: {destfield.ReadOnlyField}    Display: {destfield.Title}   Internal: {destfield.InternalName}  Fieldtype : {destfield.TypeAsString}   hidden: {destfield.Hidden}");
+            //}
+            //foreach (var destfield in destListFields.Where(d => d.ReadOnlyField))
+            //{
+            //    tcout($"--->   RO: {destfield.ReadOnlyField}    Display: {destfield.Title}   Internal: {destfield.InternalName}  Fieldtype : {destfield.TypeAsString}   hidden: {destfield.Hidden}");
+            //}
+
+            #region The real Business
             if (itsNotNew)
             {
                 ctx.Load(listDest, x => x.RootFolder, x => x.ItemCount);
@@ -1331,6 +1305,7 @@ namespace SP5000ItemLimitThresholdHelper
                     tcout(string.Format("Finished {0} files to destination.", isMove ? "move" : "copy"));
                 }
             }
+            #endregion
         }
         private bool CopyItem(bool simulate, bool isMove, bool isOverwrite, string sourceListName, string destListName, string ID, ClientContext ctx)
         {
@@ -1344,29 +1319,43 @@ namespace SP5000ItemLimitThresholdHelper
 
                 var destList = ctx.Web.Lists.GetByTitle(destListName);
                 ctx.Load(destList);
+
                 ctx.ExecuteQuery();
 
                 Dictionary<string, ListDataField> sourceFields = new Dictionary<string, ListDataField>();
                 var sourceQueryXML = new StringBuilder();
-                sourceQueryXML.Append("<View><Query><Where><Eq><FieldRef Name='ID' /><Value Type='Counter'>" + ID + "</Value></Eq></Where></Query><ViewFields>");
-
+                sourceQueryXML.Append("<View><Query><Where><Eq><FieldRef Name='ID' /><Value Type='Counter'>" + ID + "</Value></Eq></Where></Query>");//<ViewFields>");
+                
                 foreach (var sourceListField in sourceListFields)
                 {
                     if (sourceListField.ReadOnlyField == false)
                     {
-                        sourceFields.Add(sourceListField.InternalName, new ListDataField { DisplayName = sourceListField.Title, InternalName = sourceListField.InternalName, FieldType = sourceListField.TypeAsString });
+                        sourceFields.Add(sourceListField.InternalName, new ListDataField { DisplayName = sourceListField.Title,
+                            InternalName = sourceListField.InternalName,
+                            FieldType = sourceListField.TypeAsString,
+                            Hidden = sourceListField.Hidden
+                        });
                         sourceQueryXML.Append("<FieldRef Name='" + sourceListField.InternalName + "' />");
                     }
                 }
-
-                sourceQueryXML.Append("</ViewFields></View>");
+                
+                 sourceQueryXML.Append("< FieldRef Name='AttachmentFiles' /></ViewFields></View>");
                 var sourceQuery = new CamlQuery() { ViewXml = sourceQueryXML.ToString() };
 
                 ListItemCollection sourceItems = sourceList.GetItems(sourceQuery);
 
-                var sourceItem = sourceList.GetItemById(ID);
-                ctx.Load(sourceItem);
-                ctx.ExecuteQuery();
+                try
+                {
+                    ctx.Load(sourceItems);
+                    ctx.ExecuteQuery();
+                }
+                catch(Exception ex)
+                {
+                    tcout($"Failed to copy! Details: {ex.Message}");
+                    return false;
+                }
+
+                var sourceItem = sourceItems.FirstOrDefault();
 
                 var destListCreationInfo = new ListItemCreationInformation();
                 var destItem = destList.AddItem(destListCreationInfo);
@@ -1374,32 +1363,59 @@ namespace SP5000ItemLimitThresholdHelper
                 {
                     try
                     {
-                        string sharepointified_Key = spify(sourceField.Key);
-                        destItem[sharepointified_Key] = sourceItem[sharepointified_Key];
+                        string sharepointified_Key = sourceField.Key;
+                        ListDataField sharepointified_Value = sourceField.Value;
+
+                        // internal field
+                        if (sharepointified_Key == "ContentType" || sharepointified_Key == "Attachments" || sharepointified_Key == "MetaInfo" || sharepointified_Key == "FileLeafRef" || sharepointified_Key == "Order") continue;
+                        // 'Don't touch'-type status
+                        if (sharepointified_Value.Hidden) continue;
+                                               
+                        var dest_key = sharepointified_Key.Length > 32 ? sharepointified_Key.Substring(0, 32) : sharepointified_Key;
+                        //tcout($"Writing to {dest_key} <- {sharepointified_Key}[{sourceItem[sharepointified_Key]}]");
+                        destItem[dest_key] = sourceItem[sharepointified_Key];
+                        destItem.Update();
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        tcout($"Failed to copy Field '{sourceField.Key}'!");
+                        tcout($"Failed to copy Field '{sourceField.Key}'! Details: {ex.Message}");
+                        continue;
                     }
+                    //if (sourceItem.AttachmentFiles.AreItemsAvailable)
+                    //{
+                    //    try
+                    //    {
+                    //        var attachments = sourceItem.AttachmentFiles;
+                    //        ctx.Load(attachments);
+                    //        ctx.ExecuteQuery();
+
+                    //        //Copy attachments
+                    //        foreach (Attachment attach in sourceItem.AttachmentFiles) // TODO: Not loaded, don't know why!?!?
+                    //        {
+                    //            var client = new WebClient();
+                    //            client.Credentials = ctx.Credentials;
+                    //            client.DownloadFile(attach.ServerRelativeUrl, attach.FileName);
+
+                    //            byte[] imageData = client.DownloadData(attach.ServerRelativeUrl + attach.FileName);
+                    //            AttachmentCreationInformation aci = new AttachmentCreationInformation() { FileName = attach.FileName, ContentStream = new MemoryStream(imageData) };
+                    //            destItem.AttachmentFiles.Add(aci);
+                    //        }
+                    //    }
+                    //    catch (Exception ex)
+                    //    {
+                    //        tcout($"Failed to copy Attachments '{sourceField.Key}'!");
+                    //    }
+                    //}
                 }
-                //Copy attachments
-                //foreach (string fileName in sourceItem.Attachments)
-                //{
-                //    SPFile file = sourceItem.ParentList.ParentWeb.GetFile(sourceItem.Attachments.UrlPrefix + fileName);
-                //    byte[] imageData = file.OpenBinary();
-                //    targetItem.Attachments.Add(fileName, imageData);
-                //}
+
                 try
                 {
-                    destItem.Update();
                     ctx.ExecuteQuery();
                 }
                 catch (Exception ex)
                 {
-                    tcout(ex);
-                    return false;
+                    tcout($"Oh no'{ex.Message}'!");
                 }
-
                 return true;
             }
             else
@@ -1415,11 +1431,63 @@ namespace SP5000ItemLimitThresholdHelper
         {
            return key.Replace(" ", "_x0020_").Replace("(", "_x0028_").Replace(")", "_x0029_");
         }
+        private bool AddFieldsToList(List<XElement> fields, string sourceName,string listName, ClientContext ctx, bool isCalculated = false)
+        {
+            bool result = true;
+            var listSource = ctx.Web.Lists.GetByTitle(sourceName);
+            ctx.Load(listSource, x => x.Fields);
+            ctx.ExecuteQuery();
 
+            var listDest = ctx.Web.Lists.GetByTitle(listName);
+            ctx.Load(listDest, x => x.Fields);
+            ctx.ExecuteQuery();
+
+            string displayName = "", internalName = "";
+            foreach (XElement field in fields)
+            {
+                displayName = field.Attribute("DisplayName").Value;
+                internalName = field.Attribute("Name").Value;
+                field.Attribute("DisplayName").Value = internalName;
+                //if (isCalculated)
+                //{
+                //    Field newField = listSource.Fields.GetByInternalNameOrTitle(internalName);
+                //    ctx.Load(newField, nf => nf.InternalName, nf => nf.Description, nf => nf.SchemaXml, nf => nf.StaticName, nf => nf.Title, nf => nf.Id);
+                //    ctx.ExecuteQuery();
+
+                //    //newField.SchemaXml = field.ToString();
+                //    listDest.Fields.Add(newField);
+
+                //    listDest.Update();
+                //}
+                //else
+                //{
+                //    Field spField = listDest.Fields.AddFieldAsXml(field.ToString(), true, AddFieldOptions.DefaultValue);
+                //    spField.Title = displayName;
+                //    spField.StaticName = internalName;
+                //    spField.Update();
+                //}
+                try
+                {
+                    Field spField = listDest.Fields.AddFieldAsXml(field.ToString(), true, AddFieldOptions.DefaultValue);
+                    spField.Title = displayName;
+                    spField.StaticName = internalName;
+                    spField.Update();
+                    ctx.ExecuteQuery();
+                }
+                catch (Exception ex)
+                {
+                    tcout($"Trouble adding {displayName}. Details {ex.Message}");
+                    result = false;
+                    //throw ex;
+                }
+            }
+
+            return result;
+        }
         private string ExtractFields(string schemaXml)
         {
             string GUIDPattern = "\"[{|(]?[0-9a-fA-F]{8}[-]?([0-9a-fA-F]{4}[-]?){3}[0-9a-fA-F]{12}[)|}]?\"";
-            schemaXml = Regex.Replace(schemaXml, $"SourceID={GUIDPattern} ", "");
+            schemaXml = Regex.Replace(schemaXml, $"SourceID={GUIDPattern}", "");
             XElement schema = XElement.Parse(schemaXml);
             XElement fieldsNode = schema.Element("Fields");
             List<XElement> fields = fieldsNode.Elements("Field").ToList();
@@ -1432,6 +1500,8 @@ namespace SP5000ItemLimitThresholdHelper
                 fieldDef = fieldDef.Replace(match.Value, "");
             }
 
+            //fieldDef = Regex.Replace(fieldDef, " Name=\"[a-zA-Z0-9_%%]*\" ", " ");
+            fieldDef = Regex.Replace(fieldDef, " StaticName=\"[a-zA-Z0-9_%%]*\" ", " ");
             fieldDef = Regex.Replace(fieldDef, " ColName=\"[a-zA-Z0-9_%%]*\" ", " ");
             fieldDef = Regex.Replace(fieldDef, " RowOrdinal=\"[0-9]*\" ", " ");
             return $"<Fields>{fieldDef}</Fields>";
@@ -1554,7 +1624,41 @@ namespace SP5000ItemLimitThresholdHelper
         {
             if(ddlActions.SelectedItem as string == "Archive List")
             {
-                tbDestList.Text = tbSourceList.Text + "_Arcive";
+                tbDestList.Text = tbSourceList.Text + "_Archive";
+            }
+        }
+
+        private void btnDelDest_Click(object sender, EventArgs e)
+        {
+            if (tbDestList.Text.Contains("_Archive"))
+            {
+                using (ClientContext ctx = new ClientContext(new Uri(tbSiteUrl.Text.Trim())))
+                {
+                    try
+                    {
+                        ctx.Credentials = BuildCreds();
+                        FixCtxForMixedMode(ctx);
+
+                        Web web = ctx.Web;
+                        ctx.Load(web, w => w.Title);
+                        ctx.ExecuteQuery();
+                        var destList = ctx.Web.Lists.GetByTitle(tbDestList.Text);
+
+                        destList.DeleteObject();
+                        ctx.ExecuteQuery();
+
+                        cout($"{tbDestList.Text} has been deleted!!");
+                    }
+                    catch(Exception ex)
+                    {
+                        cout($"{tbDestList.Text} has not been deleted!! Error details: {ex.Message}");
+                    }
+                }
+            }
+            else
+            {
+                MessageBox.Show("Destination List is not an Archive!", "Are you sure? Cause ...");
+                cout($"{tbDestList.Text} is not an Archive and has not been deleted!! You may want to Delete items via the 'Actions' dropdown.");
             }
         }
     }

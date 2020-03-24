@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
+﻿//using System.Linq;
 using System.Windows.Forms;
 
 namespace SP5000ItemLimitThresholdHelper
@@ -15,9 +9,10 @@ namespace SP5000ItemLimitThresholdHelper
         {
             InitializeComponent();
 
-            tbAbout.Text = @" *** Welcome to SP5000ItemLimitThresholdHelper ***
+            tbAbout.Text = @" *** Welcome to SP 5000 Item Limit Threshold Helper ***
 
 Created by Ben Steinhauser of B&R Business Solutions.
+   Updated in 2020 by Andrew Morgan of eTranservices.
 
 ";
 
