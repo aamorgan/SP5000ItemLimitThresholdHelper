@@ -15,6 +15,7 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Text;
 using System.IO;
+using System.Diagnostics;
 
 namespace SP5000ItemLimitThresholdHelper
 { 
@@ -942,6 +943,8 @@ namespace SP5000ItemLimitThresholdHelper
             ctx.Load(destList);
             ctx.Load(destListFields);
             ctx.ExecuteQuery();
+
+            // -=Debugging=- dump of fields created in the dest archive version
             //foreach (var destfield in destListFields.Where(d => !d.ReadOnlyField))
             //{
             //    tcout($"--->   RO: {destfield.ReadOnlyField}    Display: {destfield.Title}   Internal: {destfield.InternalName}  Fieldtype : {destfield.TypeAsString}   hidden: {destfield.Hidden}");
@@ -1186,7 +1189,9 @@ namespace SP5000ItemLimitThresholdHelper
                 {
                     tcout(string.Format("Begin {0} files to destination...", isMove ? "move" : "copy"));
                     i = 0;
-
+                    var sw = new Stopwatch();
+                    sw.Start();
+                    var timeElapsed = sw.Elapsed;
                     foreach (var curFile in lstFileObjs.Where(x => x.fileType == "File"))
                     {
                         if (bwAsync.CancellationPending)
@@ -1199,114 +1204,89 @@ namespace SP5000ItemLimitThresholdHelper
 
                         var oldFileServerRelUrl = curFile.fullPath;
                         var newFileServerRelUrl = curFile.fullPath.Replace(listServerRelUrlSource, listServerRelUrlDest);
-                        
+
                         var prog = (Convert.ToDouble(i) / Convert.ToDouble(fileCount)) * 100;
                         tcout(string.Format("{0}/{1} - {2}%", i, fileCount, prog.ToString("##0.##")), isMove ? "Move" : "Copy" + " File", oldFileServerRelUrl);
+                        bool success = false;
+                        try
+                        {
 
-                        CopyItem(simulate, isMove, isOverwrite, sourceListName, destListName, curFile.fileId.ToString(), ctx);
-                        #region hideme
-                        //    if (!overwrite)
-                        //    {
-                        //        var newFile = ctx.Web.GetFileByServerRelativeUrl(newFileServerRelUrl);
-                        //        bool fileExist = false;
-                        //        try
-                        //        {
-                        //            // before action check if file exists at destination
-                        //            ctx.Load(newFile, f => f.Exists);
-                        //            ctx.ExecuteQuery();
-                        //            fileExist = newFile.Exists;
-                        //        }
-                        //        catch (Exception ex)
-                        //        {
-                        //            tcout(" *** ERROR checking if file exists in destination", GetExcMsg(ex));
-                        //        }
+                            if (true)
+                                success = CopyItem(simulate, isMove, isOverwrite, sourceListName, destListName, curFile.fileId.ToString(), ctx);
+                            else
+                                success = OriginalCopyItem(simulate, isMove, isOverwrite, oldFileServerRelUrl, newFileServerRelUrl, curFile.fileId.ToString(), ctx);
 
-                        //        if (fileExist)
-                        //        {
-                        //            tcout(" -- File already exists, skipped.");
-                        //        }
-                        //        else
-                        //        {
-                        //            try
-                        //            {
-                        //                var sw = new Stopwatch();
-                        //                sw.Start();
+                            tcout(" -- File " + (success ? "" : " was NOT ") + (isMove ? "moved" : "copied") + "!" + string.Format(" (Processing time: {0} secs)", sw.Elapsed.Subtract(timeElapsed).TotalSeconds.ToString("##0.##")));
+                            timeElapsed = sw.Elapsed;
+                        }
+                        catch (Exception ex)
+                        {
+                            tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
+                        }
 
-                        //                if (!simulate)
-                        //                {
-                        //                    var oldFile = ctx.Web.GetFileByServerRelativeUrl(oldFileServerRelUrl);
-
-                        //                    if (isMove)
-                        //                    {
-                        //                        oldFile.MoveTo(newFileServerRelUrl, MoveOperations.None);
-                        //                    }
-                        //                    else
-                        //                    {
-                        //                        oldFile.CopyTo(newFileServerRelUrl, false);
-                        //                    }
-
-                        //                    ctx.ExecuteQuery();
-                        //                }
-                        //                else
-                        //                {
-                        //                    Thread.Sleep(300);
-                        //                }
-
-                        //                sw.Stop();
-
-                        //                tcout(" -- File " + (isMove ? "moved" : "copied") + "!" + string.Format(" ({0}s)", sw.Elapsed.TotalSeconds.ToString("##0.##")));
-                        //            }
-                        //            catch (Exception ex)
-                        //            {
-                        //                tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
-                        //            }
-                        //        }
-                        //    }
-                        //    else
-                        //    {
-                        //        // always copy/move file, overwrite on
-                        //        try
-                        //        {
-                        //            var sw = new Stopwatch();
-                        //            sw.Start();
-
-                        //            if (!simulate)
-                        //            {
-                        //                var oldFile = ctx.Web.GetFileByServerRelativeUrl(oldFileServerRelUrl);
-
-                        //                if (isMove)
-                        //                {
-                        //                    oldFile.MoveTo(newFileServerRelUrl, MoveOperations.Overwrite);
-                        //                }
-                        //                else
-                        //                {
-                        //                    oldFile.CopyTo(newFileServerRelUrl, true);
-                        //                }
-
-                        //                ctx.ExecuteQuery();
-                        //            }
-                        //            else
-                        //            {
-                        //                Thread.Sleep(300);
-                        //            }
-
-                        //            sw.Stop();
-
-                        //            tcout(" -- File " + (isMove ? "moved" : "copied") + "!" + string.Format(" ({0}s)", sw.Elapsed.TotalSeconds.ToString("##0.##")));
-                        //        }
-                        //        catch (Exception ex)
-                        //        {
-                        //            tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
-                        //        }
-                        //    }
-                        #endregion
                     }
-
-                    tcout(string.Format("Finished {0} files to destination.", isMove ? "move" : "copy"));
+                    sw.Stop();
+                    tcout(string.Format("Finished {0} files to destination. Total time: {1} seconds", isMove ? "move" : "copy", sw.Elapsed.TotalSeconds.ToString("##0.##")));
                 }
             }
             #endregion
         }
+        private bool OriginalCopyItem(bool simulate, bool isMove, bool overwrite, string oldFileServerRelUrl, string newFileServerRelUrl, string ID, ClientContext ctx)
+        {
+            if (!overwrite)
+            {
+                var newFile = ctx.Web.GetFileByServerRelativeUrl(newFileServerRelUrl);
+                bool fileExist = false;
+                try
+                {
+                    // before action check if file exists at destination
+                    ctx.Load(newFile, f => f.Exists);
+                    ctx.ExecuteQuery();
+                    fileExist = newFile.Exists;
+                }
+                catch (Exception ex)
+                {
+                    tcout(" *** ERROR checking if file exists in destination", GetExcMsg(ex));
+                }
+
+                if (fileExist)
+                {
+                    tcout(" -- File already exists, skipped.");
+                    return true;
+                }
+            }
+
+            try
+            {
+                if (!simulate)
+                {
+                    var oldFile = ctx.Web.GetFileByServerRelativeUrl(oldFileServerRelUrl);
+
+                    if (isMove)
+                    {
+                        oldFile.MoveTo(newFileServerRelUrl, overwrite ? MoveOperations.Overwrite : MoveOperations.None);
+                    }
+                    else
+                    {
+                        oldFile.CopyTo(newFileServerRelUrl, overwrite);
+                    }
+
+                    ctx.ExecuteQuery();
+                }
+                else
+                {
+                    Thread.Sleep(300);
+                }
+            }
+            catch (Exception ex)
+            {
+                tcout(" *** ERROR " + (isMove ? "moving" : "copying") + " file to destination", GetExcMsg(ex));
+                return false;
+            }
+
+            return true;
+        }
+
         private bool CopyItem(bool simulate, bool isMove, bool isOverwrite, string sourceListName, string destListName, string ID, ClientContext ctx)
         {
             if (!simulate)
@@ -1324,7 +1304,7 @@ namespace SP5000ItemLimitThresholdHelper
 
                 Dictionary<string, ListDataField> sourceFields = new Dictionary<string, ListDataField>();
                 var sourceQueryXML = new StringBuilder();
-                sourceQueryXML.Append("<View><Query><Where><Eq><FieldRef Name='ID' /><Value Type='Counter'>" + ID + "</Value></Eq></Where></Query>");//<ViewFields>");
+                sourceQueryXML.Append("<View><Query><Where><Eq><FieldRef Name='ID' /><Value Type='Counter'>" + ID + "</Value></Eq></Where></Query>");
                 
                 foreach (var sourceListField in sourceListFields)
                 {
@@ -1338,8 +1318,9 @@ namespace SP5000ItemLimitThresholdHelper
                         sourceQueryXML.Append("<FieldRef Name='" + sourceListField.InternalName + "' />");
                     }
                 }
-                
-                 sourceQueryXML.Append("< FieldRef Name='AttachmentFiles' /></ViewFields></View>");
+
+                //sourceQueryXML.Append("<FieldRef Name='Attachments' />");
+                sourceQueryXML.Append("</ViewFields></View>");
                 var sourceQuery = new CamlQuery() { ViewXml = sourceQueryXML.ToString() };
 
                 ListItemCollection sourceItems = sourceList.GetItems(sourceQuery);
@@ -1370,7 +1351,7 @@ namespace SP5000ItemLimitThresholdHelper
                         if (sharepointified_Key == "ContentType" || sharepointified_Key == "Attachments" || sharepointified_Key == "MetaInfo" || sharepointified_Key == "FileLeafRef" || sharepointified_Key == "Order") continue;
                         // 'Don't touch'-type status
                         if (sharepointified_Value.Hidden) continue;
-                                               
+
                         var dest_key = sharepointified_Key.Length > 32 ? sharepointified_Key.Substring(0, 32) : sharepointified_Key;
                         //tcout($"Writing to {dest_key} <- {sharepointified_Key}[{sourceItem[sharepointified_Key]}]");
                         destItem[dest_key] = sourceItem[sharepointified_Key];
@@ -1381,32 +1362,36 @@ namespace SP5000ItemLimitThresholdHelper
                         tcout($"Failed to copy Field '{sourceField.Key}'! Details: {ex.Message}");
                         continue;
                     }
-                    //if (sourceItem.AttachmentFiles.AreItemsAvailable)
-                    //{
-                    //    try
-                    //    {
-                    //        var attachments = sourceItem.AttachmentFiles;
-                    //        ctx.Load(attachments);
-                    //        ctx.ExecuteQuery();
-
-                    //        //Copy attachments
-                    //        foreach (Attachment attach in sourceItem.AttachmentFiles) // TODO: Not loaded, don't know why!?!?
-                    //        {
-                    //            var client = new WebClient();
-                    //            client.Credentials = ctx.Credentials;
-                    //            client.DownloadFile(attach.ServerRelativeUrl, attach.FileName);
-
-                    //            byte[] imageData = client.DownloadData(attach.ServerRelativeUrl + attach.FileName);
-                    //            AttachmentCreationInformation aci = new AttachmentCreationInformation() { FileName = attach.FileName, ContentStream = new MemoryStream(imageData) };
-                    //            destItem.AttachmentFiles.Add(aci);
-                    //        }
-                    //    }
-                    //    catch (Exception ex)
-                    //    {
-                    //        tcout($"Failed to copy Attachments '{sourceField.Key}'!");
-                    //    }
-                    //}
                 }
+
+                // Handle the any attachements
+                NewTryToAttachFiles(ctx, sourceList, sourceItem, destList, destItem);
+
+                #region This also does not work
+                //var attachments = sourceItem.AttachmentFiles;
+
+                //if (attachments.AreItemsAvailable)
+                //{
+                //    try
+                //    {
+                //        //Copy attachments
+                //        foreach (Attachment attach in attachments) // TODO: Not loaded, don't know why!?!?
+                //        {
+                //            var client = new WebClient();
+                //            client.Credentials = ctx.Credentials;
+                //            client.DownloadFile(attach.ServerRelativeUrl, attach.FileName);
+
+                //            byte[] imageData = client.DownloadData(attach.ServerRelativeUrl + attach.FileName);
+                //            AttachmentCreationInformation aci = new AttachmentCreationInformation() { FileName = attach.FileName, ContentStream = new MemoryStream(imageData) };
+                //            destItem.AttachmentFiles.Add(aci);
+                //        }
+                //    }
+                //    catch (Exception ex)
+                //    {
+                //        tcout($"Failed to copy Attachments!");
+                //    }
+                //}
+                #endregion
 
                 try
                 {
@@ -1425,6 +1410,65 @@ namespace SP5000ItemLimitThresholdHelper
             }
 
             return false;
+        }
+
+        private void NewTryToAttachFiles(ClientContext ctx, List fromList, ListItem fromItem, List toList, ListItem toItem)
+        {
+            Web web = ctx.Web;
+            string url = ctx.Url;
+            ctx.Load(web, w => w.Title);
+            ctx.ExecuteQuery();
+            string src = string.Format("{0}/lists/{1}/Attachments/{2}", url, fromList.Title, fromItem.Id);
+
+            Folder attachmentsFolder = web.GetFolderByServerRelativeUrl(src);
+            web.Context.Load(attachmentsFolder);
+            FileCollection attachments = attachmentsFolder.Files;
+
+            try
+            {
+                web.Context.Load(attachments);
+                web.Context.ExecuteQuery();
+
+                if (attachments.Count > 0)
+                {
+                    foreach (Microsoft.SharePoint.Client.File attachment in attachments)
+                    {
+                        // FileInformation fileInfo = File.OpenBinaryDirect(ctx, attachment.ServerRelativeUrl);
+
+                        ctx.Load(toItem);
+                        var clientResultStream = attachment.OpenBinaryStream();
+                        ctx.ExecuteQuery();
+                        var stream = clientResultStream.Value;
+
+
+
+                        AttachmentCreationInformation attachFileInfo = new AttachmentCreationInformation();
+                        Byte[] buffer = new Byte[attachment.Length];
+                        int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                        System.IO.MemoryStream stream2 = new System.IO.MemoryStream(buffer);
+                        attachFileInfo.ContentStream = stream2;
+                        attachFileInfo.FileName = attachment.Name;
+
+                        Attachment a = toItem.AttachmentFiles.Add(attachFileInfo);
+                        ctx.Load(a);
+                        web.Context.ExecuteQuery();
+                        stream2.Close();
+                    }
+                }
+                ctx.Load(toItem);
+                ctx.ExecuteQuery();
+            }
+            catch(ServerException sex)
+            {
+                if (sex.Message.ToLower().Contains("file not found"))
+                    tcout("No files found in Attachment folder. But that's ok.");
+                else
+                    throw sex;
+            }
+            catch(Exception ex)
+            {
+                tcout($"Oops something is not right! Details: {ex.Message}");
+            }
         }
 
         private string spify(string key)
