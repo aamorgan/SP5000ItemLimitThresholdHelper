@@ -16,6 +16,7 @@ using System.Xml.Linq;
 using System.Text;
 using System.IO;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SP5000ItemLimitThresholdHelper
 { 
@@ -217,6 +218,9 @@ namespace SP5000ItemLimitThresholdHelper
         /// </summary>
         private void DisableFormControls()
         {
+            btnStartMain.Enabled = false;
+            btnDelDest.Enabled = false;
+
             toolStripStatusLabel1.Text = "Running...";
 
             imageBandR.Visible = false;
@@ -243,6 +247,9 @@ namespace SP5000ItemLimitThresholdHelper
             lnkExport.Enabled = true;
 
             btnAbort.Enabled = true;
+
+            btnStartMain.Enabled = true;
+            btnDelDest.Enabled = true;
         }
 
 
@@ -1408,8 +1415,6 @@ namespace SP5000ItemLimitThresholdHelper
                 Thread.Sleep(300);
                 return true;
             }
-
-            return false;
         }
 
         private void NewTryToAttachFiles(ClientContext ctx, List fromList, ListItem fromItem, List toList, ListItem toItem)
@@ -1704,6 +1709,70 @@ namespace SP5000ItemLimitThresholdHelper
                 MessageBox.Show("Destination List is not an Archive!", "Are you sure? Cause ...");
                 cout($"{tbDestList.Text} is not an Archive and has not been deleted!! You may want to Delete items via the 'Actions' dropdown.");
             }
+        }
+        private void cbPreselects_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            tbSiteUrl.Text = cbPreselects.Text;
+        }
+
+        #region Certificate and Active Domain experiments
+        private void btnGetCerts_Click(object sender, EventArgs e)
+        {
+            lbCerts.Items.Clear();
+            lbCerts.Items.Add("Pick a Certificate");
+            //lbCerts.Items.AddRange(ADAuthentication.GetSmartCardCertifcates().Select(c => c.Key).ToArray());
+            lbCerts.Items.AddRange(ADAuthentication.GetTrustedPeopleCertifcates().Select(c => c.Key).ToArray());
+        }
+
+        private void lbCerts_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            btnAuthwCert.Enabled = lbCerts.SelectedIndex != 0;
+            tbStatus.Text += lbCerts.SelectedItems[0].ToString() as string;
+        }
+        #endregion
+
+        private void btnAuthwCert_Click(object sender, EventArgs e)
+        {
+            //X509Certificate2 cert = ADAuthentication.GetSmartCardCertifcates().FirstOrDefault(c => c.Key == lbCerts.Text).Value;//GetTrustedPeopleCertifcates
+            //        X509Certificate2 cert = ADAuthentication.GetTrustedPeopleCertifcates().FirstOrDefault(c => c.Key == lbCerts.Text).Value;
+            //        if (cert != null)
+            //        {
+
+            // Use the X509Store class to get a handle to the local certificate stores. "My" is the "Personal" store.
+            //X509Store store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+            X509Store store = new X509Store(StoreName.TrustedPeople, StoreLocation.LocalMachine);
+
+            // Open the store to be able to read from it.
+            store.Open(OpenFlags.ReadOnly);
+
+            // Use the X509Certificate2Collection class to get a list of certificates that match our criteria (in this case, we should only pull back one).
+            //X509Certificate2Collection collection = store.Certificates.Find(X509FindType.FindBySubjectDistinguishedName, cert.SubjectName.Name, true);
+            X509Certificate2Collection collection = store.Certificates.Find(X509FindType.FindBySubjectDistinguishedName, "CN=portal2.tradoc.army.mil, OU=USA, OU=PKI, OU=DoD, O=U.S. Government, C=US", true);
+            collection = store.Certificates.Find(X509FindType.FindBySubjectName, "CN=portal2.tradoc.army.mil, OU=USA, OU=PKI, OU=DoD, O=U.S. Government, C=US", true);
+            //store.Certificates.Find(X509FindType.FindBySubjectKeyIdentifier, "dc74fa51adf2b81f1bde5b18266e4e7da9774c79", true);//_settings.UserName, true);
+
+            if (collection.Count != 0)
+            {
+                try
+                {
+
+                    HttpWebRequest webRequest = (HttpWebRequest)HttpWebRequest.Create("https://interfaces.atsc.army.mil/transcript-ws/api/classes?format=xml");
+                    webRequest.UseDefaultCredentials = false;
+                    webRequest.Method = "GET";
+                    // Associate the certificates with the request
+                    webRequest.ClientCertificates = collection;
+
+                    // Make the web request
+                    var whatwegot = webRequest.GetResponse() as HttpWebResponse;
+                }
+                catch (Exception)
+                {
+                    tbStatus.Text += "\nFailed to hit web service, but no suprise!!\n";
+                    
+                }
+            }
+            store.Close();
+            //      }
         }
     }
 }

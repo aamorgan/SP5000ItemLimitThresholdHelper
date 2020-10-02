@@ -40,6 +40,7 @@
             this.lblUsername = new System.Windows.Forms.Label();
             this.tbUsername = new System.Windows.Forms.TextBox();
             this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.btnDelDest = new System.Windows.Forms.Button();
             this.cbIncudeContents = new System.Windows.Forms.CheckBox();
             this.tbDestList = new System.Windows.Forms.ComboBox();
             this.tbSourceList = new System.Windows.Forms.ComboBox();
@@ -63,6 +64,10 @@
             this.label8 = new System.Windows.Forms.Label();
             this.label7 = new System.Windows.Forms.Label();
             this.tbFilterServerRelPathInc = new System.Windows.Forms.TextBox();
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.btnAuthwCert = new System.Windows.Forms.Button();
+            this.btnGetCerts = new System.Windows.Forms.Button();
+            this.lbCerts = new System.Windows.Forms.ListBox();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -79,11 +84,12 @@
             this.imageBandRwait = new System.Windows.Forms.PictureBox();
             this.lblErrorFound = new System.Windows.Forms.Label();
             this.lblNoErrorFound = new System.Windows.Forms.Label();
-            this.btnDelDest = new System.Windows.Forms.Button();
+            this.cbPreselects = new System.Windows.Forms.ComboBox();
             this.tb1.SuspendLayout();
             this.tabPage2.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.groupBox1.SuspendLayout();
+            this.tabPage3.SuspendLayout();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.imageBandR)).BeginInit();
@@ -97,6 +103,7 @@
             this.tb1.Appearance = System.Windows.Forms.TabAppearance.FlatButtons;
             this.tb1.Controls.Add(this.tabPage2);
             this.tb1.Controls.Add(this.tabPage1);
+            this.tb1.Controls.Add(this.tabPage3);
             this.tb1.Location = new System.Drawing.Point(12, 56);
             this.tb1.Name = "tb1";
             this.tb1.SelectedIndex = 0;
@@ -221,6 +228,16 @@
             this.tabPage1.TabIndex = 9;
             this.tabPage1.Text = "Actions";
             this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // btnDelDest
+            // 
+            this.btnDelDest.Location = new System.Drawing.Point(461, 60);
+            this.btnDelDest.Name = "btnDelDest";
+            this.btnDelDest.Size = new System.Drawing.Size(144, 23);
+            this.btnDelDest.TabIndex = 39;
+            this.btnDelDest.Text = "Delete Destination List";
+            this.btnDelDest.UseVisualStyleBackColor = true;
+            this.btnDelDest.Click += new System.EventHandler(this.btnDelDest_Click);
             // 
             // cbIncudeContents
             // 
@@ -460,6 +477,58 @@
             this.tbFilterServerRelPathInc.MouseEnter += new System.EventHandler(this.tbFilterServerRelPathInc_MouseEnter);
             this.tbFilterServerRelPathInc.MouseLeave += new System.EventHandler(this.tbFilterServerRelPathInc_MouseLeave);
             // 
+            // tabPage3
+            // 
+            this.tabPage3.Controls.Add(this.btnAuthwCert);
+            this.tabPage3.Controls.Add(this.btnGetCerts);
+            this.tabPage3.Controls.Add(this.lbCerts);
+            this.tabPage3.Location = new System.Drawing.Point(4, 25);
+            this.tabPage3.Name = "tabPage3";
+            this.tabPage3.Size = new System.Drawing.Size(939, 379);
+            this.tabPage3.TabIndex = 10;
+            this.tabPage3.Text = "Certs and AD Auth Discovery";
+            this.tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // btnAuthwCert
+            // 
+            this.btnAuthwCert.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnAuthwCert.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(192)))), ((int)(((byte)(128)))));
+            this.btnAuthwCert.Enabled = false;
+            this.btnAuthwCert.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnAuthwCert.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(64)))), ((int)(((byte)(0)))));
+            this.btnAuthwCert.Location = new System.Drawing.Point(665, 310);
+            this.btnAuthwCert.Name = "btnAuthwCert";
+            this.btnAuthwCert.Size = new System.Drawing.Size(271, 45);
+            this.btnAuthwCert.TabIndex = 2;
+            this.btnAuthwCert.Text = "Authenticate with Certificate";
+            this.btnAuthwCert.UseVisualStyleBackColor = false;
+            this.btnAuthwCert.Click += new System.EventHandler(this.btnAuthwCert_Click);
+            // 
+            // btnGetCerts
+            // 
+            this.btnGetCerts.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(64)))), ((int)(((byte)(0)))));
+            this.btnGetCerts.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.btnGetCerts.ForeColor = System.Drawing.Color.Yellow;
+            this.btnGetCerts.Location = new System.Drawing.Point(3, 310);
+            this.btnGetCerts.Name = "btnGetCerts";
+            this.btnGetCerts.Size = new System.Drawing.Size(271, 45);
+            this.btnGetCerts.TabIndex = 1;
+            this.btnGetCerts.Text = "Pull CAC Certificates";
+            this.btnGetCerts.UseVisualStyleBackColor = false;
+            this.btnGetCerts.Click += new System.EventHandler(this.btnGetCerts_Click);
+            // 
+            // lbCerts
+            // 
+            this.lbCerts.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.lbCerts.FormattingEnabled = true;
+            this.lbCerts.HorizontalScrollbar = true;
+            this.lbCerts.Location = new System.Drawing.Point(3, 3);
+            this.lbCerts.Name = "lbCerts";
+            this.lbCerts.Size = new System.Drawing.Size(933, 290);
+            this.lbCerts.TabIndex = 0;
+            this.lbCerts.SelectedIndexChanged += new System.EventHandler(this.lbCerts_SelectedIndexChanged);
+            // 
             // menuStrip1
             // 
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
@@ -516,12 +585,10 @@
             // 
             // tbSiteUrl
             // 
-            this.tbSiteUrl.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
             this.tbSiteUrl.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tbSiteUrl.Location = new System.Drawing.Point(83, 30);
             this.tbSiteUrl.Name = "tbSiteUrl";
-            this.tbSiteUrl.Size = new System.Drawing.Size(798, 22);
+            this.tbSiteUrl.Size = new System.Drawing.Size(415, 22);
             this.tbSiteUrl.TabIndex = 0;
             // 
             // label1
@@ -631,21 +698,30 @@
             this.lblNoErrorFound.TabIndex = 502;
             this.lblNoErrorFound.Text = "NO ERRORS FOUND";
             // 
-            // btnDelDest
+            // cbPreselects
             // 
-            this.btnDelDest.Location = new System.Drawing.Point(461, 60);
-            this.btnDelDest.Name = "btnDelDest";
-            this.btnDelDest.Size = new System.Drawing.Size(144, 23);
-            this.btnDelDest.TabIndex = 39;
-            this.btnDelDest.Text = "Delete Destination List";
-            this.btnDelDest.UseVisualStyleBackColor = true;
-            this.btnDelDest.Click += new System.EventHandler(this.btnDelDest_Click);
+            this.cbPreselects.FormattingEnabled = true;
+            this.cbPreselects.Items.AddRange(new object[] {
+            "Click for a preselected URL",
+            "http://vaa0tkesp10d1/sites/",
+            "http://vaa0tkesp10d1/sites/amo/18",
+            "http://vaa0tkesp10d1/sites/amo/19",
+            "http://vaa0tkesp10d1/sites/cats",
+            "https://sharepointdev.tradoc.army.mil/sites/helpdesk",
+            "http://vaa0tkesp13d1/sites/",
+            "http://vaa0tkesp10d2:2159/sites/"});
+            this.cbPreselects.Location = new System.Drawing.Point(526, 30);
+            this.cbPreselects.Name = "cbPreselects";
+            this.cbPreselects.Size = new System.Drawing.Size(372, 21);
+            this.cbPreselects.TabIndex = 503;
+            this.cbPreselects.SelectedIndexChanged += new System.EventHandler(this.cbPreselects_SelectedIndexChanged);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(972, 753);
+            this.Controls.Add(this.cbPreselects);
             this.Controls.Add(this.imageBandR);
             this.Controls.Add(this.imageBandRwait);
             this.Controls.Add(this.lblNoErrorFound);
@@ -669,6 +745,7 @@
             this.tabPage1.PerformLayout();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
+            this.tabPage3.ResumeLayout(false);
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
@@ -733,6 +810,11 @@
         private System.Windows.Forms.ComboBox tbSourceList;
         private System.Windows.Forms.CheckBox cbIncudeContents;
         private System.Windows.Forms.Button btnDelDest;
+        private System.Windows.Forms.TabPage tabPage3;
+        private System.Windows.Forms.Button btnGetCerts;
+        private System.Windows.Forms.ListBox lbCerts;
+        private System.Windows.Forms.Button btnAuthwCert;
+        private System.Windows.Forms.ComboBox cbPreselects;
     }
 }
 

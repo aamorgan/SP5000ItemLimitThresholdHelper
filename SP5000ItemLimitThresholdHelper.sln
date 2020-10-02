@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.1000
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SP5000ItemLimitThresholdHelper", "SP5000ItemLimitThresholdHelper\SP5000ItemLimitThresholdHelper.csproj", "{2CD7450C-1C84-4911-A58F-8F7551D2365B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSOTestApp", "TSOTestApp\TSOTestApp.csproj", "{AC766A5A-9971-4D77-84CF-0EE58343D60E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSOTestApp35", "TSOTestApp3.5\TSOTestApp35.csproj", "{27529AF1-4184-4A4E-A0EA-3AD0D7987E74}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,8 +19,19 @@ Global
 		{2CD7450C-1C84-4911-A58F-8F7551D2365B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2CD7450C-1C84-4911-A58F-8F7551D2365B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2CD7450C-1C84-4911-A58F-8F7551D2365B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC766A5A-9971-4D77-84CF-0EE58343D60E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC766A5A-9971-4D77-84CF-0EE58343D60E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC766A5A-9971-4D77-84CF-0EE58343D60E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC766A5A-9971-4D77-84CF-0EE58343D60E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27529AF1-4184-4A4E-A0EA-3AD0D7987E74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27529AF1-4184-4A4E-A0EA-3AD0D7987E74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27529AF1-4184-4A4E-A0EA-3AD0D7987E74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27529AF1-4184-4A4E-A0EA-3AD0D7987E74}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {54CE33A5-7281-45D1-9414-D28317CE7D9D}
 	EndGlobalSection
 EndGlobal
